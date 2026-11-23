@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14121f">
+<title>ドット絵バトル</title>
+<style>
+:root{--bg:#14121f;--panel:#201c36;--panel2:#2a2548;--line:#3a3463;--text:#f1eefc;--sub:#a9a3c9;--accent:#ffcc33;--good:#5be08a;--bad:#ff6b6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none !important}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.5}
+#app{max-width:480px;margin:0 auto;padding:12px 14px calc(28px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:20px;margin:4px 0;letter-spacing:.04em}
+h2{font-size:16px;margin:0 0 10px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--sub);border-radius:999px;padding:6px 12px;font-size:12px;font-family:inherit}
+.chip.ok{color:var(--good);border-color:#2f6b47}
+.chip.err{color:var(--bad);border-color:#7a3333}
+.stagebar{display:flex;justify-content:space-between;color:var(--sub);font-size:13px;margin:2px 2px 10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+details.card summary{cursor:pointer;font-size:14px;color:var(--sub)}
+.sprite{image-rendering:pixelated;width:96px;height:96px;background:var(--panel2);border-radius:10px;flex:none}
+.enemy-card{display:flex;gap:12px;align-items:center}
+.ename{font-weight:700;font-size:16px}
+.sub{color:var(--sub);font-size:13px}
+.hint{color:var(--accent);font-size:13px;margin-top:4px}
+.badge{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;color:#14121f;margin:4px 0}
+#paint{display:block;width:100%;max-width:420px;margin:0 auto;aspect-ratio:1/1;image-rendering:pixelated;border-radius:8px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;background:#443f69}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px}
+button{font-family:inherit;touch-action:manipulation}
+.tool{flex:1 1 auto;min-height:44px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:14px}
+.tool.on{border-color:var(--accent);background:#3b3260;box-shadow:inset 0 0 0 1px var(--accent)}
+.palette{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:8px 0}
+.swatch{aspect-ratio:1/1;border-radius:8px;border:2px solid var(--line);padding:0}
+.swatch.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.msg{min-height:20px;color:var(--bad);font-size:13px;margin:4px 0}
+.primary,.secondary{min-height:48px;border-radius:12px;font-size:16px;font-weight:700;border:0;padding:0 16px}
+.primary{width:100%;background:var(--accent);color:#2a2000}
+.primary:disabled{background:#5b5440;color:#9a937a}
+.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.row{display:flex;gap:10px;margin-top:12px}.row>*{flex:1}
+.result-main{display:flex;gap:14px;align-items:center}
+.rank{font-size:64px;font-weight:900;line-height:1}
+.guess{font-size:17px;font-weight:700;margin:10px 0 4px}
+.guesslist{margin:4px 0 8px;padding-left:20px;color:var(--sub);font-size:13px}
+.breakdown{display:grid;gap:4px;font-size:12px;color:var(--sub);margin:8px 0}
+.brow{display:grid;grid-template-columns:70px 1fr 38px;align-items:center;gap:8px}
+.mini{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}.mini>i{display:block;height:100%;background:var(--accent)}
+.matchup{font-weight:700;margin:10px 0 2px}
+.arena{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.fighter{flex:1;text-align:center}
+.fighter .sprite{width:112px;height:112px;margin:0 auto 6px;display:block}
+.fname{font-size:14px;font-weight:700;min-height:21px}
+.bar{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden;margin:6px 6px 2px}
+.fill{height:100%;width:100%;background:var(--good);transition:width .4s}
+.vs{align-self:center;color:var(--sub);font-weight:900}
+.log{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-height:150px;font-size:14px}
+.log p{margin:2px 0}
+.outcome{text-align:center;margin-top:12px}
+.outcome .big{font-size:26px;font-weight:900;margin-bottom:4px}
+.hit{animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.chartline{font-size:14px;margin:8px 0}
+.chartex{font-size:12px;color:var(--sub);margin:3px 0}
+footer{color:var(--sub);font-size:11px;margin-top:18px;line-height:1.6}
+footer a{color:var(--sub)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <h1>ドット絵バトル</h1>
+    <button id="aiChip" class="chip wait" type="button">AI準備中…</button>
+  </header>
+  <div class="stagebar"><span id="stageLabel">ステージ 1</span><span id="bestLabel">最高 -</span></div>
+
+  <!-- 1. お絵かき画面 -->
+  <section id="screen-draw" class="screen">
+    <div class="card enemy-card">
+      <canvas id="enemyCanvas" class="sprite"></canvas>
+      <div>
+        <div id="enemyName" class="ename"></div>
+        <div id="enemyEl" class="badge"></div>
+        <div id="enemyStats" class="sub"></div>
+        <div id="enemyHint" class="hint"></div>
+      </div>
+    </div>
+    <details class="card">
+      <summary>属性の相性・描くヒント</summary>
+      <div id="chart"></div>
+    </details>
+    <div class="card">
+      <canvas id="paint" width="512" height="512"></canvas>
+      <div class="tools">
+        <button class="tool on" data-tool="pen" type="button">✏️ ペン</button>
+        <button class="tool" data-tool="eraser" type="button">🧽 消しゴム</button>
+        <button class="tool" data-tool="fill" type="button">🪣 塗りつぶし</button>
+        <button class="tool" id="undoBtn" type="button">↩️ 戻す</button>
+        <button class="tool" id="clearBtn" type="button">🗑 全消し</button>
+      </div>
+      <div id="palette" class="palette"></div>
+      <div id="drawMsg" class="msg" role="status"></div>
+      <button id="judgeBtn" class="primary" type="button">この絵で戦う！（AI判定）</button>
+    </div>
+  </section>
+
+  <!-- 2. 判定結果画面 -->
+  <section id="screen-result" class="screen" hidden>
+    <div class="card">
+      <h2>AIの判定結果</h2>
+      <div class="result-main">
+        <canvas id="resultCanvas" class="sprite"></canvas>
+        <div>
+          <div id="rankBig" class="rank">-</div>
+          <div id="scoreText" class="sub"></div>
+        </div>
+      </div>
+      <div id="guessMain" class="guess"></div>
+      <ol id="guessList" class="guesslist"></ol>
+      <div id="playerEl" class="badge"></div>
+      <div id="breakdown" class="breakdown"></div>
+      <div id="playerStats" class="sub"></div>
+      <div id="matchupText" class="matchup"></div>
+      <div id="aiTip" class="hint"></div>
+      <div class="row">
+        <button id="backBtn" class="secondary" type="button">描き直す</button>
+        <button id="fightBtn" class="primary" type="button">バトル開始！</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. バトル画面 -->
+  <section id="screen-battle" class="screen" hidden>
+    <div class="card arena">
+      <div class="fighter" id="fP">
+        <canvas id="pCanvas" class="sprite"></canvas>
+        <div id="pName" class="fname"></div>
+        <div class="bar"><div id="pBar" class="fill"></div></div>
+        <div id="pHpText" class="sub"></div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="fighter" id="fE">
+        <canvas id="eCanvas" class="sprite"></canvas>
+        <div id="eName" class="fname"></div>
+        <div class="bar"><div id="eBar" class="fill"></div></div>
+        <div id="eHpText" class="sub"></div>
+      </div>
+    </div>
+    <div id="log" class="log" aria-live="polite"></div>
+    <div id="outcome" class="outcome" hidden>
+      <div id="outcomeText" class="big"></div>
+      <div id="outcomeSub" class="sub"></div>
+      <div id="outcomeBtns" class="row"></div>
+    </div>
+  </section>
+
+  <footer>
+    AI判定: ブラウザ内で動く画像分類モデル
+    <a href="https://huggingface.co/Xenova/quickdraw-mobilevit-small">Xenova/quickdraw-mobilevit-small</a>
+    （<a href="https://github.com/huggingface/transformers.js">Transformers.js</a> 使用、学習データは Google の Quick, Draw! データセット CC BY 4.0）。
+    描いた絵はあなたの端末の外には送信されません。
+  </footer>
+</div>
+
+<script>
+'use strict';
+
+/* =====================================================
+   調整用の定数（ここをいじるとゲームバランスが変わります）
+   ===================================================== */
+const GRID = 32;                 // キャンバスのマス数
+const CELL = 16;                 // 描画用1マスのpx（内部解像度）
+const MIN_PIXELS = 20;           // 判定に必要な最低ドット数
+const AI_MODEL = 'Xenova/quickdraw-mobilevit-small';
+const AI_URLS = [
+  'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1',
+  'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3'
+];
+const RANK_TABLE = [['S', 85], ['A', 70], ['B', 55], ['C', 40], ['D', 25], ['E', 0]]; // [ランク, 必要スコア]
+const SCORE_WEIGHTS = { conf: 70, detail: 12, color: 8, sym: 10 };                   // 合計100
+const CONF_FULL = 0.6;           // AIの自信がこの値以上なら「認識度」満点
+const ADV_MULT = 1.5;            // 有利時の倍率
+const DIS_MULT = 1 / 1.5;        // 不利時の倍率
+const CRIT_RATE = 0.1;           // 会心率
+const SAVE_KEY = 'pab_best';
+
+/* =====================================================
+   属性
+   相性: 水 → 火 → 草 → 土 → 雷 → 水 （→ は「有利」）
+   ===================================================== */
+const ELEMENTS = {
+  fire:    { name: '火', icon: '🔥', color: '#ef5b3c' },
+  water:   { name: '水', icon: '💧', color: '#5aa2ff' },
+  grass:   { name: '草', icon: '🌿', color: '#6fcf6f' },
+  earth:   { name: '土', icon: '⛰️', color: '#c9964f' },
+  thunder: { name: '雷', icon: '⚡', color: '#f5d33d' },
+  none:    { name: '無', icon: '⚪', color: '#b5b1cf' }
+};
+const BEATS = { water: 'fire', fire: 'grass', grass: 'earth', earth: 'thunder', thunder: 'water' };
+const ENEMY_ELEMENTS = ['fire', 'water', 'grass', 'earth', 'thunder'];
+
+function typeMult(att, def) {
+  if (BEATS[att] === def) return ADV_MULT;
+  if (BEATS[def] === att) return DIS_MULT;
+  return 1;
+}
+
+/* =====================================================
+   AIが返す345種類のラベル → 日本語名・属性
+   f=火 w=水 g=草 e=土 l=雷(空・電気) n=無
+   ===================================================== */
+const LABEL_DATA = `
+aircraft carrier|空母|w
+airplane|飛行機|l
+alarm clock|目覚まし時計|l
+ambulance|救急車|e
+angel|天使|l
+animal migration|動物の大移動|e
+ant|アリ|g
+anvil|金床|e
+apple|リンゴ|g
+arm|腕|n
+asparagus|アスパラガス|g
+axe|斧|n
+backpack|リュック|n
+banana|バナナ|g
+bandage|包帯|n
+barn|納屋|e
+baseball bat|バット|n
+baseball|野球ボール|n
+basket|かご|g
+basketball|バスケットボール|n
+bat|コウモリ|l
+bathtub|浴槽|w
+beach|ビーチ|w
+bear|クマ|e
+beard|あごひげ|n
+bed|ベッド|n
+bee|ハチ|g
+belt|ベルト|n
+bench|ベンチ|n
+bicycle|自転車|e
+binoculars|双眼鏡|n
+bird|鳥|l
+birthday cake|バースデーケーキ|f
+blackberry|ブラックベリー|g
+blueberry|ブルーベリー|g
+book|本|n
+boomerang|ブーメラン|n
+bottlecap|ボトルキャップ|n
+bowtie|蝶ネクタイ|n
+bracelet|ブレスレット|n
+brain|脳|n
+bread|パン|n
+bridge|橋|e
+broccoli|ブロッコリー|g
+broom|ほうき|n
+bucket|バケツ|w
+bulldozer|ブルドーザー|e
+bus|バス|e
+bush|茂み|g
+butterfly|チョウ|g
+cactus|サボテン|g
+cake|ケーキ|n
+calculator|電卓|l
+calendar|カレンダー|n
+camel|ラクダ|e
+camera|カメラ|l
+camouflage|迷彩|g
+campfire|たき火|f
+candle|ろうそく|f
+cannon|大砲|f
+canoe|カヌー|w
+car|車|e
+carrot|ニンジン|g
+castle|城|e
+cat|ネコ|e
+ceiling fan|シーリングファン|l
+cell phone|スマホ|l
+cello|チェロ|n
+chair|いす|n
+chandelier|シャンデリア|f
+church|教会|e
+circle|円|n
+clarinet|クラリネット|n
+clock|時計|l
+cloud|雲|w
+coffee cup|コーヒーカップ|f
+compass|コンパス|n
+computer|パソコン|l
+cookie|クッキー|n
+cooler|クーラーボックス|w
+couch|ソファ|n
+cow|ウシ|e
+crab|カニ|w
+crayon|クレヨン|n
+crocodile|ワニ|w
+crown|王冠|n
+cruise ship|客船|w
+cup|カップ|n
+diamond|ダイヤモンド|n
+dishwasher|食洗機|l
+diving board|飛び込み台|w
+dog|イヌ|e
+dolphin|イルカ|w
+donut|ドーナツ|n
+door|ドア|n
+dragon|ドラゴン|f
+dresser|タンス|n
+drill|ドリル|l
+drums|ドラム|n
+duck|アヒル|w
+dumbbell|ダンベル|n
+ear|耳|n
+elbow|ひじ|n
+elephant|ゾウ|e
+envelope|封筒|n
+eraser|消しゴム|n
+eye|目|n
+eyeglasses|メガネ|n
+face|顔|n
+fan|扇風機|l
+feather|羽根|l
+fence|柵|e
+finger|指|n
+fire hydrant|消火栓|w
+fireplace|暖炉|f
+firetruck|消防車|w
+fish|魚|w
+flamingo|フラミンゴ|l
+flashlight|懐中電灯|l
+flip flops|ビーチサンダル|n
+floor lamp|フロアランプ|l
+flower|花|g
+flying saucer|UFO|l
+foot|足|n
+fork|フォーク|n
+frog|カエル|g
+frying pan|フライパン|f
+garden hose|ホース|w
+garden|庭|g
+giraffe|キリン|e
+goatee|ヤギひげ|n
+golf club|ゴルフクラブ|n
+grapes|ブドウ|g
+grass|草|g
+guitar|ギター|n
+hamburger|ハンバーガー|n
+hammer|ハンマー|e
+hand|手|n
+harp|ハープ|n
+hat|帽子|n
+headphones|ヘッドホン|l
+hedgehog|ハリネズミ|e
+helicopter|ヘリコプター|l
+helmet|ヘルメット|n
+hexagon|六角形|n
+hockey puck|パック|n
+hockey stick|ホッケースティック|n
+horse|ウマ|e
+hospital|病院|e
+hot air balloon|熱気球|l
+hot dog|ホットドッグ|n
+hot tub|ジャグジー|w
+hourglass|砂時計|e
+house plant|観葉植物|g
+house|家|e
+hurricane|ハリケーン|l
+ice cream|アイスクリーム|w
+jacket|ジャケット|n
+jail|牢屋|e
+kangaroo|カンガルー|e
+key|鍵|n
+keyboard|キーボード|l
+knee|ひざ|n
+knife|ナイフ|n
+ladder|はしご|n
+lantern|ランタン|f
+laptop|ノートPC|l
+leaf|葉|g
+leg|脚|n
+light bulb|電球|l
+lighter|ライター|f
+lighthouse|灯台|f
+lightning|雷|l
+line|線|n
+lion|ライオン|e
+lipstick|口紅|n
+lobster|ロブスター|w
+lollipop|キャンディ|n
+mailbox|ポスト|n
+map|地図|n
+marker|マーカー|n
+matches|マッチ|f
+megaphone|メガホン|l
+mermaid|人魚|w
+microphone|マイク|l
+microwave|電子レンジ|l
+monkey|サル|g
+moon|月|l
+mosquito|蚊|l
+motorbike|バイク|e
+mountain|山|e
+mouse|ネズミ|e
+moustache|口ひげ|n
+mouth|口|n
+mug|マグカップ|f
+mushroom|キノコ|g
+nail|くぎ|n
+necklace|ネックレス|n
+nose|鼻|n
+ocean|海|w
+octagon|八角形|n
+octopus|タコ|w
+onion|タマネギ|g
+oven|オーブン|f
+owl|フクロウ|l
+paint can|ペイント缶|n
+paintbrush|絵筆|n
+palm tree|ヤシの木|g
+panda|パンダ|g
+pants|ズボン|n
+paper clip|クリップ|n
+parachute|パラシュート|l
+parrot|オウム|l
+passport|パスポート|n
+peanut|ピーナッツ|g
+pear|洋梨|g
+peas|エンドウ豆|g
+pencil|えんぴつ|n
+penguin|ペンギン|w
+piano|ピアノ|n
+pickup truck|ピックアップトラック|e
+picture frame|額縁|n
+pig|ブタ|e
+pillow|まくら|n
+pineapple|パイナップル|g
+pizza|ピザ|f
+pliers|ペンチ|n
+police car|パトカー|e
+pond|池|w
+pool|プール|w
+popsicle|アイスキャンディ|w
+postcard|はがき|n
+potato|ジャガイモ|e
+power outlet|コンセント|l
+purse|ハンドバッグ|n
+rabbit|ウサギ|e
+raccoon|アライグマ|e
+radio|ラジオ|l
+rain|雨|w
+rainbow|虹|w
+rake|熊手|g
+remote control|リモコン|l
+rhinoceros|サイ|e
+rifle|ライフル|f
+river|川|w
+roller coaster|ジェットコースター|l
+rollerskates|ローラースケート|n
+sailboat|ヨット|w
+sandwich|サンドイッチ|n
+saw|のこぎり|n
+saxophone|サックス|n
+school bus|スクールバス|e
+scissors|はさみ|n
+scorpion|サソリ|e
+screwdriver|ドライバー|n
+sea turtle|ウミガメ|w
+see saw|シーソー|n
+shark|サメ|w
+sheep|ヒツジ|e
+shoe|くつ|n
+shorts|短パン|n
+shovel|シャベル|e
+sink|流し台|w
+skateboard|スケボー|n
+skull|ドクロ|n
+skyscraper|高層ビル|e
+sleeping bag|寝袋|n
+smiley face|スマイル|n
+snail|カタツムリ|g
+snake|ヘビ|e
+snorkel|シュノーケル|w
+snowflake|雪の結晶|w
+snowman|雪だるま|w
+soccer ball|サッカーボール|n
+sock|靴下|n
+speedboat|モーターボート|w
+spider|クモ|e
+spoon|スプーン|n
+spreadsheet|表計算|l
+square|四角|n
+squiggle|ぐにゃぐにゃ線|n
+squirrel|リス|g
+stairs|階段|n
+star|星|l
+steak|ステーキ|f
+stereo|ステレオ|l
+stethoscope|聴診器|n
+stitches|縫い目|n
+stop sign|止まれ標識|n
+stove|コンロ|f
+strawberry|イチゴ|g
+streetlight|街灯|l
+string bean|さやいんげん|g
+submarine|潜水艦|w
+suitcase|スーツケース|n
+sun|太陽|f
+swan|ハクチョウ|w
+sweater|セーター|n
+swing set|ブランコ|n
+sword|剣|n
+syringe|注射器|n
+t-shirt|Tシャツ|n
+table|テーブル|n
+teapot|ティーポット|f
+teddy-bear|テディベア|n
+telephone|電話|l
+television|テレビ|l
+tennis racquet|テニスラケット|n
+tent|テント|n
+The Eiffel Tower|エッフェル塔|e
+The Great Wall of China|万里の長城|e
+The Mona Lisa|モナ・リザ|n
+tiger|トラ|e
+toaster|トースター|f
+toe|足指|n
+toilet|トイレ|w
+tooth|歯|n
+toothbrush|歯ブラシ|n
+toothpaste|歯みがき粉|n
+tornado|竜巻|l
+tractor|トラクター|e
+traffic light|信号|l
+train|電車|l
+tree|木|g
+triangle|三角|n
+trombone|トロンボーン|n
+truck|トラック|e
+trumpet|トランペット|n
+umbrella|傘|w
+underwear|パンツ|n
+van|バン|e
+vase|花瓶|n
+violin|バイオリン|n
+washing machine|洗濯機|w
+watermelon|スイカ|g
+waterslide|ウォータースライダー|w
+whale|クジラ|w
+wheel|車輪|e
+windmill|風車|l
+wine bottle|ワインボトル|n
+wine glass|ワイングラス|n
+wristwatch|腕時計|l
+yoga|ヨガ|n
+zebra|シマウマ|e
+zigzag|ジグザグ|l
+`;
+const CODE2EL = { f: 'fire', w: 'water', g: 'grass', e: 'earth', l: 'thunder', n: 'none' };
+const LABELS = new Map();
+for (const line of LABEL_DATA.split('\n')) {
+  const s = line.trim();
+  if (!s) continue;
+  const [en, ja, c] = s.split('|');
+  LABELS.set(en, { ja: ja, el: CODE2EL[c] });
+}
+function labelInfo(en) { return LABELS.get(en) || { ja: en, el: 'none' }; }
+
+// 「描くヒント」用の例（属性ごと）
+const EXAMPLES = {
+  fire: ['campfire', 'candle', 'dragon', 'sun', 'pizza', 'stove'],
+  water: ['fish', 'whale', 'rain', 'sailboat', 'penguin', 'crab'],
+  grass: ['tree', 'flower', 'grapes', 'mushroom', 'cactus', 'butterfly'],
+  earth: ['cat', 'dog', 'house', 'mountain', 'elephant', 'castle'],
+  thunder: ['airplane', 'bird', 'lightning', 'star', 'television', 'moon']
+};
+
+/* =====================================================
+   共通ユーティリティ
+   ===================================================== */
+function $(id) { return document.getElementById(id); }
+function mk(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function loadBest() { try { return parseInt(localStorage.getItem(SAVE_KEY) || '0', 10) || 0; } catch (e) { return 0; } }
+function saveBest(n) { try { localStorage.setItem(SAVE_KEY, String(n)); } catch (e) { /* 保存できなくてもOK */ } }
+
+// 色の配列・関数からキャンバスにドット絵を描く
+function drawBitmap(canvas, w, h, colorAt, px) {
+  canvas.width = w * px; canvas.height = h * px;
+  const c = canvas.getContext('2d');
+  c.imageSmoothingEnabled = false;
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const col = colorAt(x, y);
+    if (col) { c.fillStyle = col; c.fillRect(x * px, y * px, px, px); }
+  }
+}
+
+/* =====================================================
+   ゲーム状態
+   ===================================================== */
+// パレット（グリッド値は 1〜15、0 は「何も描いていない」）
+const PALETTE = ['#1a1530', '#ffffff', '#9b95b8', '#e63946', '#f4812a', '#ffd23f', '#9ad14b', '#2fa84f',
+                 '#2ec4c4', '#3a7bdc', '#7b4fd1', '#ee6fb8', '#8b5a2b', '#f2c9a0', '#b0e0ff'];
+const state = {
+  grid: new Uint8Array(GRID * GRID),
+  tool: 'pen',
+  color: 4,           // パレット番号（1始まり）
+  undo: [],
+  stage: 1,
+  best: loadBest(),
+  enemy: null,
+  player: null,
+  busy: false
+};
+
+/* =====================================================
+   お絵かき
+   ===================================================== */
+const paint = $('paint');
+const pctx = paint.getContext('2d');
+
+function renderPaint() {
+  pctx.imageSmoothingEnabled = false;
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    const v = state.grid[y * GRID + x];
+    pctx.fillStyle = v ? PALETTE[v - 1] : (((x + y) & 1) ? '#4b4672' : '#443f69');
+    pctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+  }
+}
+function cellAt(e) {
+  const r = paint.getBoundingClientRect();
+  return {
+    x: clamp(Math.floor((e.clientX - r.left) / r.width * GRID), 0, GRID - 1),
+    y: clamp(Math.floor((e.clientY - r.top) / r.height * GRID), 0, GRID - 1)
+  };
+}
+function brush(x, y) { state.grid[y * GRID + x] = state.tool === 'eraser' ? 0 : state.color; }
+function lineCells(a, b, fn) { // ブレゼンハム法で隙間なく線を引く
+  let x0 = a.x, y0 = a.y; const x1 = b.x, y1 = b.y;
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    fn(x0, y0);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+function floodFill(x, y, val) {
+  const g = state.grid, target = g[y * GRID + x];
+  if (target === val) return;
+  const stack = [[x, y]];
+  while (stack.length) {
+    const [cx, cy] = stack.pop();
+    if (cx < 0 || cy < 0 || cx >= GRID || cy >= GRID) continue;
+    if (g[cy * GRID + cx] !== target) continue;
+    g[cy * GRID + cx] = val;
+    stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+  }
+}
+function sameGrid(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
+function pushUndo(snapshot) {
+  state.undo.push(snapshot);
+  if (state.undo.length > 40) state.undo.shift();
+}
+
+let drawing = false, lastCell = null, snapshot = null;
+paint.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  try { paint.setPointerCapture(e.pointerId); } catch (err) { /* 無視 */ }
+  setMsg('');
+  snapshot = state.grid.slice();
+  const c = cellAt(e);
+  if (state.tool === 'fill') {
+    floodFill(c.x, c.y, state.color);
+    finishStroke();
+    renderPaint();
+    return;
+  }
+  drawing = true; lastCell = c;
+  brush(c.x, c.y);
+  renderPaint();
+});
+paint.addEventListener('pointermove', e => {
+  if (!drawing) return;
+  e.preventDefault();
+  const c = cellAt(e);
+  if (c.x === lastCell.x && c.y === lastCell.y) return;
+  lineCells(lastCell, c, brush);
+  lastCell = c;
+  renderPaint();
+});
+function endDraw() { if (!drawing) return; drawing = false; finishStroke(); }
+function finishStroke() {
+  if (snapshot && !sameGrid(snapshot, state.grid)) pushUndo(snapshot);
+  snapshot = null;
+}
+paint.addEventListener('pointerup', endDraw);
+paint.addEventListener('pointercancel', endDraw);
+paint.addEventListener('contextmenu', e => e.preventDefault());
+
+function setTool(t) {
+  state.tool = t;
+  document.querySelectorAll('.tool[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
+}
+document.querySelectorAll('.tool[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+$('undoBtn').addEventListener('click', () => {
+  const prev = state.undo.pop();
+  if (prev) { state.grid.set(prev); renderPaint(); }
+});
+$('clearBtn').addEventListener('click', () => {
+  if (state.grid.some(v => v)) pushUndo(state.grid.slice());
+  state.grid.fill(0);
+  renderPaint();
+  setMsg('');
+});
+
+function buildPalette() {
+  const box = $('palette');
+  box.textContent = '';
+  PALETTE.forEach((col, i) => {
+    const b = mk('button', 'swatch');
+    b.type = 'button';
+    b.style.background = col;
+    b.setAttribute('aria-label', '色 ' + (i + 1));
+    b.dataset.idx = String(i + 1);
+    b.addEventListener('click', () => {
+      state.color = i + 1;
+      if (state.tool === 'eraser') setTool('pen');
+      markPalette();
+    });
+    box.appendChild(b);
+  });
+  markPalette();
+}
+function markPalette() {
+  document.querySelectorAll('.swatch').forEach(b => b.classList.toggle('on', Number(b.dataset.idx) === state.color));
+}
+function setMsg(t) { $('drawMsg').textContent = t; }
+
+/* =====================================================
+   AI判定（ブラウザ内モデル）
+   ===================================================== */
+const AI = { clf: null, RawImage: null, ready: false, loading: null };
+let aiAttempt = 0; // 失敗したimport()はブラウザに覚えられてしまうので、再試行ではURLに #retryN を付けて別物として読み直す
+
+function setAiStatus(kind, text) {
+  const chip = $('aiChip');
+  chip.className = 'chip ' + kind;
+  chip.textContent = text;
+  updateJudgeBtn();
+}
+function updateJudgeBtn() {
+  const b = $('judgeBtn');
+  if (state.busy) { b.disabled = true; b.textContent = '判定中…'; return; }
+  if (AI.ready) { b.disabled = false; b.textContent = 'この絵で戦う！（AI判定）'; return; }
+  b.disabled = true;
+  b.textContent = $('aiChip').classList.contains('err') ? 'AIの読み込みに失敗（右上をタップで再試行）' : 'AI準備中…（先に描いておこう）';
+}
+async function loadAI() {
+  if (AI.ready) return;
+  if (AI.loading) return AI.loading;
+  setAiStatus('wait', 'AI準備中…');
+  AI.loading = (async () => {
+    let lastErr = null;
+    for (const url of AI_URLS) {
+      try {
+        const mod = await import(aiAttempt ? url + '#retry' + aiAttempt : url);
+        AI.RawImage = mod.RawImage;
+        AI.clf = await mod.pipeline('image-classification', AI_MODEL, {
+          dtype: 'fp32',
+          progress_callback: p => {
+            if (p && p.status === 'progress' && p.file && /\.onnx$/.test(p.file)) {
+              setAiStatus('wait', 'AI準備中… ' + Math.round(p.progress) + '%');
+            }
+          }
+        });
+        AI.ready = true;
+        setAiStatus('ok', 'AI準備OK');
+        return;
+      } catch (err) {
+        lastErr = err;
+        console.warn('AI読み込み失敗:', url, err);
+      }
+    }
+    aiAttempt++;
+    throw lastErr || new Error('AIを読み込めませんでした');
+  })();
+  try { await AI.loading; }
+  catch (err) { AI.loading = null; setAiStatus('err', 'AI読み込み失敗（タップで再試行）'); }
+}
+$('aiChip').addEventListener('click', () => { if (!AI.ready && !AI.loading) loadAI(); });
+
+/* ---- 絵 → 28x28 の入力画像 ----
+   Quick, Draw! のモデルは「黒背景に白い線」の28x28画像で学習されている。
+   ドット絵の描いた部分を白(255)、何もない部分を黒(0)にして、
+   絵の外枠にぴったり合わせて中央に拡大縮小する。 */
+function maskOf(grid) {
+  const m = new Uint8Array(GRID * GRID);
+  for (let i = 0; i < m.length; i++) m[i] = grid[i] ? 1 : 0;
+  return m;
+}
+function outlineOf(mask) {
+  const o = new Uint8Array(GRID * GRID);
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+    if (!mask[y * GRID + x]) continue;
+    const edge = x === 0 || y === 0 || x === GRID - 1 || y === GRID - 1 ||
+      !mask[y * GRID + x - 1] || !mask[y * GRID + x + 1] || !mask[(y - 1) * GRID + x] || !mask[(y + 1) * GRID + x];
+    if (edge) o[y * GRID + x] = 1;
+  }
+  return o;
+}
+function bboxOf(mask) {
+  let x0 = GRID, y0 = GRID, x1 = -1, y1 = -1;
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) if (mask[y * GRID + x]) {
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  return x1 < 0 ? null : { x0, y0, x1, y1 };
+}
+function rasterize28(mask, bb) {
+  bb = bb || bboxOf(mask);
+  const out = new Uint8ClampedArray(28 * 28);
+  if (!bb) return out;
+  const w = bb.x1 - bb.x0 + 1, h = bb.y1 - bb.y0 + 1;
+  const scale = 24 / Math.max(w, h);            // 周囲に2pxの余白
+  const offX = (28 - w * scale) / 2, offY = (28 - h * scale) / 2;
+  for (let oy = 0; oy < 28; oy++) for (let ox = 0; ox < 28; ox++) {
+    let acc = 0;
+    for (let sy = 0; sy < 4; sy++) for (let sx = 0; sx < 4; sx++) {
+      const gx = bb.x0 + (ox + (sx + 0.5) / 4 - offX) / scale;
+      const gy = bb.y0 + (oy + (sy + 0.5) / 4 - offY) / scale;
+      const ix = Math.floor(gx), iy = Math.floor(gy);
+      if (ix >= bb.x0 && ix <= bb.x1 && iy >= bb.y0 && iy <= bb.y1 && mask[iy * GRID + ix]) acc++;
+    }
+    out[oy * 28 + ox] = Math.round(acc / 16 * 255);
+  }
+  return out;
+}
+// 「ぬりつぶし版」と「輪郭版」の2通りを判定して確率を平均する
+async function classifyGrid(grid) {
+  const sil = maskOf(grid);
+  const bb = bboxOf(sil);
+  if (!bb) throw new Error('絵が空です');
+  const variants = [sil, outlineOf(sil)];
+  const sums = new Map();
+  for (const m of variants) {
+    const img = new AI.RawImage(rasterize28(m, bb), 28, 28, 1);
+    const out = await AI.clf(img, { top_k: 345 });
+    for (const r of out) sums.set(r.label, (sums.get(r.label) || 0) + r.score / variants.length);
+  }
+  return [...sums].map(([label, score]) => ({ label, score })).sort((a, b) => b.score - a.score).slice(0, 5);
+}
+
+/* ---- 採点 ---- */
+function analyzeArt(grid) {
+  const mask = maskOf(grid);
+  let painted = 0; const colors = new Set();
+  for (let i = 0; i < grid.length; i++) if (grid[i]) { painted++; colors.add(grid[i]); }
+  // 左右対称度（外枠の中で、描いたマスがどれだけ左右で一致しているか）
+  let sym = 0; const bb = bboxOf(mask);
+  if (bb) {
+    let both = 0, either = 0;
+    for (let y = bb.y0; y <= bb.y1; y++) for (let i = 0; i <= bb.x1 - bb.x0; i++) {
+      const a = mask[y * GRID + bb.x0 + i], b = mask[y * GRID + bb.x1 - i];
+      if (a || b) either++;
+      if (a && b) both++;
+    }
+    sym = either ? both / either : 0;
+  }
+  return { painted, colors: colors.size, coverage: painted / (GRID * GRID), sym };
+}
+function detailScore(cov) {
+  if (cov < 0.02) return 0;
+  if (cov < 0.12) return (cov - 0.02) / 0.10;
+  if (cov <= 0.55) return 1;
+  if (cov < 0.9) return (0.9 - cov) / 0.35;
+  return 0;
+}
+function rankOf(total) {
+  for (const [r, min] of RANK_TABLE) if (total >= min) return r;
+  return 'E';
+}
+function scoreArt(art, conf) {
+  const parts = {
+    conf: clamp(Math.sqrt(conf / CONF_FULL), 0, 1),
+    detail: detailScore(art.coverage),
+    color: clamp((art.colors - 1) / 4, 0, 1),
+    sym: clamp(art.sym, 0, 1)
+  };
+  const total = Math.round(parts.conf * SCORE_WEIGHTS.conf + parts.detail * SCORE_WEIGHTS.detail +
+                           parts.color * SCORE_WEIGHTS.color + parts.sym * SCORE_WEIGHTS.sym);
+  return { total, parts, rank: rankOf(total) };
+}
+function buildPlayer(grid, top, sc) {
+  const info = labelInfo(top[0].label);
+  return {
+    name: info.ja, label: top[0].label, el: info.el, rank: sc.rank, score: sc.total,
+    hp: Math.round(80 + sc.total), atk: Math.round(12 + sc.total * 0.35),
+    grid: grid.slice()
+  };
+}
+
+/* =====================================================
+   敵
+   ===================================================== */
+const ENEMY_NAMES = {
+  fire: ['ファイアスライム', 'ほのおのトカゲ', 'マグマゴーレム', 'ヒノコ'],
+  water: ['アクアスライム', 'みずのまじん', 'バブルクラゲ', 'シズク'],
+  grass: ['リーフスライム', 'きのこゴブリン', 'ツタのばけもの', 'ミドリ'],
+  earth: ['ロックスライム', 'いわのゴーレム', 'ドロの巨人', 'ツチノコ'],
+  thunder: ['ボルトスライム', 'いなずまトカゲ', 'デンキクラゲ', 'ピカリ']
+};
+const SPRITE_COL = {
+  fire: ['#ef5b3c', '#8e2a17'], water: ['#3b82f6', '#1c4a9c'], grass: ['#4caf50', '#24692a'],
+  earth: ['#b07c42', '#6a4620'], thunder: ['#f5c518', '#9a7a00']
+};
+// 左右対称のモンスターを乱数で作る（1=体 2=ふち 3=白目 4=黒目/口）
+function genSprite(rand, elKey, boss) {
+  const W = boss ? 13 : 11, H = W, half = Math.ceil(W / 2);
+  const cx = (W - 1) / 2, cy = (H - 1) / 2;
+  const b = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < half; x++) {
+    const d = Math.hypot((x - cx) / cx, (y - cy) / cy);
+    const on = rand() < Math.max(0, 1.05 - d * 0.85) ? 1 : 0;
+    b[y * W + x] = on; b[y * W + (W - 1 - x)] = on;
+  }
+  for (let y = Math.floor(H * 0.3); y < Math.ceil(H * 0.75); y++)
+    for (let x = Math.floor(W * 0.3); x < Math.ceil(W * 0.7); x++) b[y * W + x] = 1;
+  const s = b.slice();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!b[y * W + x]) continue;
+    const edge = x === 0 || y === 0 || x === W - 1 || y === H - 1 ||
+      !b[y * W + x - 1] || !b[y * W + x + 1] || !b[(y - 1) * W + x] || !b[(y + 1) * W + x];
+    if (edge) s[y * W + x] = 2;
+  }
+  const eyeY = Math.floor(H * 0.4), left = Math.floor(cx - W * 0.17), right = W - 1 - left;
+  s[eyeY * W + left] = 3; s[eyeY * W + right] = 3;
+  s[(eyeY + 1) * W + left] = 4; s[(eyeY + 1) * W + right] = 4;
+  for (let x = Math.floor(cx) - 1; x <= Math.ceil(cx) + 1; x++) s[(eyeY + 3) * W + x] = 4;
+  return { w: W, h: H, cells: s, el: elKey };
+}
+function spriteColorAt(sp) {
+  const [body, edge] = SPRITE_COL[sp.el];
+  const map = { 1: body, 2: edge, 3: '#ffffff', 4: '#1a1530' };
+  return (x, y) => map[sp.cells[y * sp.w + x]] || null;
+}
+function makeEnemy(stage, prevEl, rand) {
+  rand = rand || Math.random;
+  const pool = ENEMY_ELEMENTS.filter(e => e !== prevEl);
+  const el = pool[Math.floor(rand() * pool.length)];
+  const boss = stage % 5 === 0;
+  const names = ENEMY_NAMES[el];
+  const name = (boss ? '【BOSS】' : '') + names[Math.floor(rand() * names.length)];
+  return {
+    name, el, boss, stage,
+    hp: Math.round((60 + 14 * stage) * (boss ? 1.4 : 1)),
+    atk: Math.round((10 + 2.4 * stage) * (boss ? 1.1 : 1)),
+    sprite: genSprite(mulberry32(Math.floor(rand() * 1e9)), el, boss)
+  };
+}
+
+/* =====================================================
+   バトル（勝敗の決定）
+   ===================================================== */
+function simulateBattle(p, e, rng) {
+  rng = rng || Math.random;
+  let ph = p.hp, eh = e.hp;
+  const events = [];
+  const hit = (atkVal, attEl, defEl) => {
+    const mult = typeMult(attEl, defEl);
+    const crit = rng() < CRIT_RATE;
+    const dmg = Math.max(1, Math.round(atkVal * mult * (0.85 + rng() * 0.3) * (crit ? 1.5 : 1)));
+    return { dmg, mult, crit };
+  };
+  let round = 0;
+  while (ph > 0 && eh > 0 && round < 50) {
+    round++;
+    let h = hit(p.atk, p.el, e.el);
+    eh = Math.max(0, eh - h.dmg);
+    events.push({ side: 'p', dmg: h.dmg, mult: h.mult, crit: h.crit, ph, eh });
+    if (eh <= 0) break;
+    h = hit(e.atk, e.el, p.el);
+    ph = Math.max(0, ph - h.dmg);
+    events.push({ side: 'e', dmg: h.dmg, mult: h.mult, crit: h.crit, ph, eh });
+  }
+  const winner = ph > 0 && eh <= 0 ? 'p' : (eh > 0 && ph <= 0 ? 'e' : (ph / p.hp >= eh / e.hp ? 'p' : 'e'));
+  return { events, winner, rounds: round };
+}
+
+/* =====================================================
+   画面
+   ===================================================== */
+function showScreen(name) {
+  for (const n of ['draw', 'result', 'battle']) $('screen-' + n).hidden = n !== name;
+  window.scrollTo(0, 0);
+}
+function badgeFor(elKey, suffix) {
+  const el = ELEMENTS[elKey];
+  return { text: el.icon + ' ' + el.name + (suffix || ''), color: el.color };
+}
+function setBadge(node, elKey, suffix) {
+  const b = badgeFor(elKey, suffix);
+  node.textContent = b.text; node.style.background = b.color;
+}
+function updateHeader() {
+  $('stageLabel').textContent = 'ステージ ' + state.stage + (state.enemy && state.enemy.boss ? '（BOSS）' : '');
+  $('bestLabel').textContent = '最高 ' + (state.best ? 'ステージ ' + state.best : '-');
+}
+function counterOf(elKey) { return Object.keys(BEATS).find(k => BEATS[k] === elKey); } // elKey に有利な属性
+
+function updateEnemyCard() {
+  const e = state.enemy;
+  drawBitmap($('enemyCanvas'), e.sprite.w, e.sprite.h, spriteColorAt(e.sprite), 8);
+  $('enemyName').textContent = e.name;
+  setBadge($('enemyEl'), e.el, '属性');
+  $('enemyStats').textContent = 'HP ' + e.hp + ' / ATK ' + e.atk;
+  const good = ELEMENTS[counterOf(e.el)], bad = ELEMENTS[BEATS[e.el]];
+  $('enemyHint').textContent = '有利: ' + good.icon + good.name + '属性 ／ 不利: ' + bad.icon + bad.name + '属性';
+  updateHeader();
+}
+function buildChart() {
+  const box = $('chart');
+  box.textContent = '';
+  const order = ['water', 'fire', 'grass', 'earth', 'thunder'];
+  box.appendChild(mk('div', 'chartline', order.map(k => ELEMENTS[k].icon + ELEMENTS[k].name).join(' → ') + ' → ' + ELEMENTS.water.icon + ELEMENTS.water.name));
+  box.appendChild(mk('div', 'chartex', '「→」は有利な向き（攻撃×1.5 ／ 逆向きは×0.67）。無属性は常に等倍。'));
+  box.appendChild(mk('div', 'chartex', 'AIが「何の絵か」を判定し、その種類で属性が決まります。例:'));
+  for (const k of order) {
+    const ex = EXAMPLES[k].map(en => labelInfo(en).ja).join('・');
+    box.appendChild(mk('div', 'chartex', ELEMENTS[k].icon + ELEMENTS[k].name + ' … ' + ex));
+  }
+}
+
+/* ---- 判定の実行 ---- */
+async function onJudge() {
+  if (state.busy) return;
+  const art = analyzeArt(state.grid);
+  if (art.painted < MIN_PIXELS) { setMsg('もう少し描いてね（' + MIN_PIXELS + 'ドット以上）'); return; }
+  if (!AI.ready) { setMsg('AIの準備ができるまで少し待ってね'); loadAI(); return; }
+  state.busy = true; updateJudgeBtn(); setMsg('');
+  try {
+    const top = await classifyGrid(state.grid);
+    const sc = scoreArt(art, top[0].score);
+    state.player = buildPlayer(state.grid, top, sc);
+    showResult(top, art, sc);
+  } catch (err) {
+    console.error(err);
+    setMsg('判定に失敗しました: ' + (err && err.message ? err.message : err));
+  } finally {
+    state.busy = false; updateJudgeBtn();
+  }
+}
+$('judgeBtn').addEventListener('click', onJudge);
+
+function showResult(top, art, sc) {
+  const p = state.player, e = state.enemy;
+  drawBitmap($('resultCanvas'), GRID, GRID, (x, y) => { const v = p.grid[y * GRID + x]; return v ? PALETTE[v - 1] : null; }, 4);
+  const rk = $('rankBig');
+  rk.textContent = sc.rank;
+  rk.style.color = { S: '#ffd23f', A: '#ff8a5b', B: '#ffb347', C: '#9ad14b', D: '#7fb2ff', E: '#9b95b8' }[sc.rank];
+  $('scoreText').textContent = 'ランク ' + sc.rank + ' ／ ' + sc.total + '点';
+  const t1 = labelInfo(top[0].label);
+  $('guessMain').textContent = 'AIは「' + t1.ja + '」だと思った！（' + Math.round(top[0].score * 100) + '%）';
+  const list = $('guessList'); list.textContent = '';
+  top.slice(1, 3).forEach(t => list.appendChild(mk('li', '', labelInfo(t.label).ja + '（' + Math.round(t.score * 100) + '%）かも？')));
+  setBadge($('playerEl'), p.el, '属性');
+  const bd = $('breakdown'); bd.textContent = '';
+  [['認識度', sc.parts.conf], ['描き込み', sc.parts.detail], ['色づかい', sc.parts.color], ['左右対称', sc.parts.sym]].forEach(([n, v]) => {
+    const row = mk('div', 'brow');
+    row.appendChild(mk('span', '', n));
+    const bar = mk('div', 'mini'); const i = document.createElement('i'); i.style.width = Math.round(v * 100) + '%'; bar.appendChild(i);
+    row.appendChild(bar);
+    row.appendChild(mk('span', '', Math.round(v * 100) + '%'));
+    bd.appendChild(row);
+  });
+  $('playerStats').textContent = 'HP ' + p.hp + ' / ATK ' + p.atk;
+  const mP = typeMult(p.el, e.el), mE = typeMult(e.el, p.el);
+  const mt = $('matchupText');
+  if (mP > 1) { mt.textContent = '◎ 相性: 有利！ あなた×' + mP.toFixed(2) + ' ／ 敵×' + mE.toFixed(2); mt.style.color = 'var(--good)'; }
+  else if (mP < 1) { mt.textContent = '× 相性: 不利… あなた×' + mP.toFixed(2) + ' ／ 敵×' + mE.toFixed(2); mt.style.color = 'var(--bad)'; }
+  else { mt.textContent = '△ 相性: ふつう（等倍）'; mt.style.color = 'var(--text)'; }
+  $('aiTip').textContent = top[0].score < 0.15 ? 'AIが迷っています。特徴（耳・ひれ・羽など）をはっきり描くとランクが上がるかも！' : '';
+  showScreen('result');
+}
+$('backBtn').addEventListener('click', () => showScreen('draw'));
+$('fightBtn').addEventListener('click', playBattle);
+
+/* ---- バトル再生 ---- */
+function logLine(text, color) {
+  const log = $('log');
+  const p = mk('p', '', text);
+  if (color) p.style.color = color;
+  log.appendChild(p);
+  while (log.children.length > 8) log.removeChild(log.firstChild);
+}
+function setBar(prefix, hp, max) {
+  $(prefix + 'Bar').style.width = Math.max(0, hp / max * 100) + '%';
+  $(prefix + 'Bar').style.background = hp / max > 0.5 ? 'var(--good)' : (hp / max > 0.2 ? '#ffb347' : 'var(--bad)');
+  $(prefix + 'HpText').textContent = 'HP ' + Math.max(0, hp) + ' / ' + max;
+}
+async function playBattle() {
+  if (state.busy) return;
+  state.busy = true;
+  const p = state.player, e = state.enemy;
+  showScreen('battle');
+  $('log').textContent = ''; $('outcome').hidden = true;
+  drawBitmap($('pCanvas'), GRID, GRID, (x, y) => { const v = p.grid[y * GRID + x]; return v ? PALETTE[v - 1] : null; }, 4);
+  drawBitmap($('eCanvas'), e.sprite.w, e.sprite.h, spriteColorAt(e.sprite), 8);
+  $('pName').textContent = ELEMENTS[p.el].icon + ' ' + p.name + '（' + p.rank + '）';
+  $('eName').textContent = ELEMENTS[e.el].icon + ' ' + e.name;
+  setBar('p', p.hp, p.hp); setBar('e', e.hp, e.hp);
+  const res = simulateBattle(p, e);
+  logLine('バトル開始！ ' + p.name + ' vs ' + e.name);
+  for (const ev of res.events) {
+    await sleep(750);
+    const mine = ev.side === 'p';
+    const target = $(mine ? 'fE' : 'fP').querySelector('canvas');
+    target.classList.remove('hit'); void target.offsetWidth; target.classList.add('hit');
+    setBar('p', ev.ph, p.hp); setBar('e', ev.eh, e.hp);
+    let t = (mine ? p.name : e.name) + 'の攻撃！ ' + ev.dmg + 'ダメージ';
+    if (ev.mult > 1) t += ' 効果は抜群だ！'; else if (ev.mult < 1) t += ' いまひとつ…';
+    if (ev.crit) t += ' 会心の一撃！';
+    logLine(t, mine ? '#8fe3ff' : '#ffb3b3');
+  }
+  await sleep(500);
+  showOutcome(res.winner);
+  state.busy = false;
+}
+function showOutcome(winner) {
+  const box = $('outcome'), btns = $('outcomeBtns');
+  btns.textContent = '';
+  const mkBtn = (label, cls, fn) => { const b = mk('button', cls, label); b.type = 'button'; b.addEventListener('click', fn); btns.appendChild(b); };
+  box.hidden = false;
+  if (winner === 'p') {
+    if (state.stage > state.best) { state.best = state.stage; saveBest(state.best); }
+    updateHeader();
+    $('outcomeText').textContent = '🎉 勝利！';
+    $('outcomeText').style.color = 'var(--good)';
+    $('outcomeSub').textContent = 'ステージ ' + state.stage + ' クリア';
+    mkBtn('次のステージへ', 'primary', () => {
+      state.stage++;
+      state.enemy = makeEnemy(state.stage, state.enemy.el);
+      updateEnemyCard(); showScreen('draw');
+    });
+  } else {
+    $('outcomeText').textContent = '💀 敗北…';
+    $('outcomeText').style.color = 'var(--bad)';
+    $('outcomeSub').textContent = 'ステージ ' + state.stage + ' で力尽きた（描き直せば再挑戦できます）';
+    mkBtn('この敵に再挑戦', 'primary', () => showScreen('draw'));
+    mkBtn('最初から', 'secondary', () => {
+      state.stage = 1;
+      state.enemy = makeEnemy(1, null);
+      updateEnemyCard(); showScreen('draw');
+    });
+  }
+}
+
+/* =====================================================
+   起動
+   ===================================================== */
+function init() {
+  buildPalette();
+  buildChart();
+  renderPaint();
+  state.enemy = makeEnemy(state.stage, null);
+  updateEnemyCard();
+  updateJudgeBtn();
+  showScreen('draw');
+  loadAI();
+}
+init();
+</script>
+</body>
+</html>
